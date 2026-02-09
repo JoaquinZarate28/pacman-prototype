@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pac-Man en JavaScript</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: black;
+        }
+        canvas {
+            border: 1px solid #fff;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="pacmanGame" width="500" height="500"></canvas>
+    <script>
+        const canvas = document.getElementById('pacmanGame');
+        const ctx = canvas.getContext('2d');
+
+        // Variables del juego
+        const pacman = {
+            x: 50,
+            y: 50,
+            radius: 20,
+            angleStart: 0.2,
+            angleEnd: Math.PI * 1.8,
+            color: 'yellow',
+            speed: 5,
+            dx: 0,
+            dy: 0
+        };
+
+        const ghosts = [
+            { x: 100, y: 100, radius: 15, color: 'red', dx: 1, dy: 0 },
+            { x: 300, y: 200, radius: 15, color: 'red', dx: -1, dy: 0 },
+            { x: 400, y: 350, radius: 15, color: 'red', dx: 0, dy: 1 },
+            { x: 200, y: 400, radius: 15, color: 'red', dx: 0, dy: -1 }
+        ];
+
+        const walls = [
+            { x: 0, y: 0, width: 500, height: 20 },
+            { x: 0, y: 0, width: 20, height: 500 },
+            { x: 0, y: 480, width: 500, height: 20 },
+            { x: 480, y: 0, width: 20, height: 500 },
+            { x: 100, y: 100, width: 100, height: 20 },
+            { x: 300, y: 200, width: 100, height: 20 },
+            { x: 200, y: 300, width: 20, height: 100 },
+            { x: 100, y: 400, width: 100, height: 20 }
+        ];
+
+        // Dibujar Pac-Man
+        function drawPacman() {
+            ctx.beginPath();
+            ctx.arc(pacman.x, pacman.y, pacman.radius, pacman.angleStart, pacman.angleEnd);
+            ctx.lineTo(pacman.x, pacman.y);
+            ctx.fillStyle = pacman.color;
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        // Dibujar los fantasmas
+        function drawGhosts() {
+            ghosts.forEach(ghost => {
+                ctx.beginPath();
+                ctx.arc(ghost.x, ghost.y, ghost.radius, 0, Math.PI * 2);
+                ctx.fillStyle = ghost.color;
+                ctx.fill();
+                ctx.closePath();
+            });
+        }
+
+        // Dibujar las paredes
+        function drawWalls() {
+            walls.forEach(wall => {
+                ctx.fillStyle = 'blue';
+                ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
+            });
+        }
+
+        // Actualizar la posición de Pac-Man
+        function updatePacman() {
+            pacman.x += pacman.dx;
+            pacman.y += pacman.dy;
+
+            // Detectar límites del canvas
+            if (pacman.x < pacman.radius) pacman.x = pacman.radius;
+            if (pacman.x > canvas.width - pacman.radius) pacman.x = canvas.width - pacman.radius;
+            if (pacman.y < pacman.radius) pacman.y = pacman.radius;
+            if (pacman.y > canvas.height - pacman.radius) pacman.y = canvas.height - pacman.radius;
+        }
+
+        // Mover Pac-Man con las teclas
+        function movePacman(e) {
+            switch (e.key) {
+                case 'ArrowUp':
+                    pacman.dy = -pacman.speed;
+                    pacman.dx = 0;
+                    break;
+                case 'ArrowDown':
+                    pacman.dy = pacman.speed;
+                    pacman.dx = 0;
+                    break;
+                case 'ArrowLeft':
+                    pacman.dx = -pacman.speed;
+                    pacman.dy = 0;
+                    break;
+                case 'ArrowRight':
+                    pacman.dx = pacman.speed;
+                    pacman.dy = 0;
+                    break;
+            }
+        }
+
+        // Verificar si Pac-Man toca una pared
+        function checkWallCollision() {
+            for (let wall of walls) {
+                if (
+                    pacman.x + pacman.radius > wall.x && pacman.x - pacman.radius < wall.x + wall.width &&
+                    pacman.y + pacman.radius > wall.y && pacman.y - pacman.radius < wall.y + wall.height
+                ) {
+                    pacman.x -= pacman.dx;
+                    pacman.y -= pacman.dy;
+                }
+            }
+        }
+
+        // Verificar si Pac-Man toca a un fantasma
+        function checkGhostCollision() {
+            for (let ghost of ghosts) {
+                const distance = Math.sqrt((pacman.x - ghost.x) ** 2 + (pacman.y - ghost.y) ** 2);
+                if (distance < pacman.radius + ghost.radius) {
+                    alert('¡Game Over! Pac-Man ha tocado un fantasma.');
+                    resetGame();
+                }
+            }
+        }
+
+        // Mover los fantasmas de manera aleatoria
+        function moveGhosts() {
+            ghosts.forEach(ghost => {
+                ghost.x += ghost.dx * 2;
+                ghost.y += ghost.dy * 2;
+
+                // Cambiar la dirección de los fantasmas al llegar a los límites del canvas
+                if (ghost.x < 0 || ghost.x > canvas.width) ghost.dx *= -1;
+                if (ghost.y < 0 || ghost.y > canvas.height) ghost.dy *= -1;
+            });
+        }
+
+        // Limpiar el canvas
+        function clear() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // Función de renderizado
+        function render() {
+            clear();
+            drawWalls();
+            drawPacman();
+            drawGhosts();
+            updatePacman();
+            checkWallCollision();
+            checkGhostCollision();
+            moveGhosts();
+            requestAnimationFrame(render);
+        }
+
+        // Resetear el juego
+        function resetGame() {
+            pacman.x = 50;
+            pacman.y = 50;
+            pacman.dx = 0;
+            pacman.dy = 0;
+        }
+
+        // Escuchar eventos de teclado
+        window.addEventListener('keydown', movePacman);
+
+        // Iniciar el juego
+        render();
+    </script>
+</body>
+</html>
